@@ -23,7 +23,7 @@ app.get("/", (req, res) => {
 
 // Create accounts
 app.post("/create-account", async (req, res) => {
-  const { fullName, email, password } = req.body;
+  const { fullName, email, password } = req.body; //received data from body of request
 
   if (!fullName) {
     return res.status(400).json({ message: "Full Name is required." });
@@ -37,30 +37,70 @@ app.post("/create-account", async (req, res) => {
     return res.status(400).json({ message: "Password is required." });
   }
 
-  const isUser = await User.findOne({ email: email });
+  const isUser = await User.findOne({ email: email }); //check email exists in User with User.findOne
 
   if (isUser) {
     return res.json({ error: true, message: "User already exists." });
   }
 
+  //if user dont exist, create new user from model User
   const user = new User({
     fullName,
     email,
     password,
   });
+  await user.save(); // save user in database
 
-  await user.save();
-
+  // create token when user created successfully
   const accessToken = jwt.sign({ user }, process.env.ACCESS_TOKEN_SECRET, {
-    expiresIn: "36000m", // expires in 15 minutes
+    expiresIn: "36000m", // expires in 36000 minutes
   });
 
+  // respone after token created include info data json type
   return res.json({
     error: false,
     user,
     accessToken,
     message: "Registration successful",
   });
+});
+
+// Login
+app.post("/login", async (req, res) => {
+  const { email, password } = req.body; // received data from body of request
+
+  if (!email) {
+    return res.status(400).json({ message: "Nhập mail dô ní ơi" });
+  }
+
+  if (!password) {
+    return res.status(400).json({ message: "Gõ cái mật khẩu dô" });
+  }
+
+  const userInfo = await User.findOne({ email: email }); //check email exists in User with User.findOne
+
+  if (!userInfo) {
+    return res.json({ error: true, message: "Email này chưa đăng ký ní ơi" });
+  }
+
+  if (userInfo.email === email && userInfo.password === password) {
+    const user = { user: userInfo };
+    const accessToken = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
+      expiresIn: "36000m", // expires in 36000 minutes
+    });
+
+    return res.json({
+      error: false,
+      email,
+      accessToken,
+      message: "Đăng nhập được gùi",
+    });
+  }else{
+    return res.status(400).json({
+      error: true,
+      message: "Mật khẩu đéo đúng.",
+    });
+  }
 });
 
 app.listen(8000, () => {
