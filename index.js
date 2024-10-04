@@ -6,6 +6,7 @@ const mongoose = require("mongoose"); // import mongoose library
 mongoose.connect(config.connectionString);
 
 const User = require("./models/user.model"); // import user model
+const Note = require("./models/note.model"); // import note model
 
 const express = require("express"); // import express framework
 const cors = require("cors"); // import cors package
@@ -17,6 +18,8 @@ const { authenticateToken } = require("./utilities");
 app.use(express.json()); // use middleware to handle JSON data
 
 app.use(cors({ origin: "*" })); // config cors to accept any request from the any domain
+
+// create api
 app.get("/", (req, res) => {
   res.json({ data: "hello world" });
 });
@@ -70,11 +73,11 @@ app.post("/login", async (req, res) => {
   const { email, password } = req.body; // received data from body of request
 
   if (!email) {
-    return res.status(400).json({ message: "Nhập mail dô ní ơi" });
+    return res.status(400).json({ message: "Nhập mail dô ní ơi" }); //check not null email
   }
 
   if (!password) {
-    return res.status(400).json({ message: "Gõ cái mật khẩu dô" });
+    return res.status(400).json({ message: "Gõ cái mật khẩu dô" }); //check not null pass
   }
 
   const userInfo = await User.findOne({ email: email }); //check email exists in User with User.findOne
@@ -83,7 +86,9 @@ app.post("/login", async (req, res) => {
     return res.json({ error: true, message: "Email này chưa đăng ký ní ơi" });
   }
 
+  // check email and password is correct
   if (userInfo.email === email && userInfo.password === password) {
+    // create token when user logged in successfully
     const user = { user: userInfo };
     const accessToken = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
       expiresIn: "36000m", // expires in 36000 minutes
@@ -95,11 +100,39 @@ app.post("/login", async (req, res) => {
       accessToken,
       message: "Đăng nhập được gùi",
     });
-  }else{
+  } else {
     return res.status(400).json({
       error: true,
       message: "Mật khẩu đéo đúng.",
     });
+  }
+});
+
+//Add note
+app.post("/add-note", authenticateToken, async (req, res) => {
+  const { title, content, tags } = req.body; // received data from body of request
+  const {user} = req.user;
+
+  if (!title) {
+    return res.status(400).json({ message: "Tiêu đe cần nhập." });
+  }
+
+  if (!content) {
+    return res.status(400).json({ message: "Nội dung cần nhập." });
+  }
+
+  try {
+    const note = new Note({
+      title,
+      content,
+      tags: tags || [],
+      userId: user._id,
+    });
+    await note.save(); // save note in database
+
+    return res.json({ error: false, note, message: "Thêm ghi chú thành công" });
+  } catch (error) {
+    return res.status(500).json({ error: true, message: "Lỗi sever" });
   }
 });
 
