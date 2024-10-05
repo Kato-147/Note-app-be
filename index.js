@@ -152,12 +152,10 @@ app.put("/edit-note/:noteId", authenticateToken, async (req, res) => {
     const note = await Note.findOne({ _id: noteId, userId: user._id });
 
     if (!note) {
-      return res
-        .status(404)
-        .json({
-          error: true,
-          message: "Ghi chú không tồn tại hoặc bạn không có quyền sửa.",
-        });
+      return res.status(404).json({
+        error: true,
+        message: "Ghi chú không tồn tại hoặc bạn không có quyền sửa.",
+      });
     }
 
     if (title) note.title = title;
@@ -187,6 +185,32 @@ app.get("/get-all-notes", authenticateToken, async (req, res) => {
     });
   } catch (error) {
     return res.status(500).json({ message: "Lỗi sever get all" });
+  }
+});
+
+//Delete notes
+app.delete("/delete-note/:noteId", authenticateToken, async (req, res) => {
+  const { user } = req.user;
+  const noteId = req.params.noteId;
+
+  try {
+    const notes = await Note.findOne({ _id: noteId, userId: user._id });
+
+    if (!notes) {
+      return res
+        .status(404)
+        .json({
+          error: true,
+          message: "Ghi chú không tồn tại hoặc bạn không có quyền xóa",
+        });
+    }
+
+    await Note.deleteOne({ _id: noteId, userId: user._id });
+
+    return res.json({ error: false, message: "Xóa ghi chú thành công" });
+
+  } catch (error) {
+    return res.status(500).json({ error: true, message: "Lỗi sever delete" });
   }
 });
 
