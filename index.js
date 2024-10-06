@@ -214,6 +214,32 @@ app.delete("/delete-note/:noteId", authenticateToken, async (req, res) => {
   }
 });
 
+//Update is Pinned value
+app.put('/update-note-pinned/:noteId', authenticateToken, async (req, res)=>{
+  const noteId = req.params.noteId;
+  const {isPinned } = req.body; // received data from body of request
+  const { user } = req.user;
+
+  try {
+    const note = await Note.findOne({ _id: noteId, userId: user._id });
+
+    if (!note) {
+      return res.status(404).json({
+        error: true,
+        message: "Ghi chú không tồn tại hoặc bạn không có quyền sửa.",
+      });
+    }
+
+    note.isPinned = isPinned;
+
+    await note.save();
+
+    return res.json({ error: false, note, message: "cập nhật ghi chú thành công" });
+  } catch (error) {
+    return res.status(500).json({ error: true, message: "lỗi server" });
+  }
+})
+
 app.listen(8000, () => {
   console.log("Server is running on port 8000");
 }); // port 8000
