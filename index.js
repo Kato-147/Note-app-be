@@ -108,6 +108,19 @@ app.post("/login", async (req, res) => {
   }
 });
 
+//Get user
+app.get('/get-user', authenticateToken, async (req, res) => {
+const {user} = req.user;
+
+const isUser =  await User.findOne({_id : user._id});
+
+if(!isUser){
+  return res.json({error : true, message : 'User không tồn tại'});
+}
+
+return res.json({error : false, user : isUser});
+});
+
 //Add note
 app.post("/add-note", authenticateToken, async (req, res) => {
   const { title, content, tags } = req.body; // received data from body of request
