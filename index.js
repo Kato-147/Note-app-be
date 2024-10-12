@@ -109,16 +109,16 @@ app.post("/login", async (req, res) => {
 });
 
 //Get user
-app.get('/get-user', authenticateToken, async (req, res) => {
-const {user} = req.user;
+app.get("/get-user", authenticateToken, async (req, res) => {
+  const { user } = req.user;
 
-const isUser =  await User.findOne({_id : user._id});
+  const isUser = await User.findOne({ _id: user._id });
 
-if(!isUser){
-  return res.json({error : true, message : 'User không tồn tại'});
-}
+  if (!isUser) {
+    return res.json({ error: true, message: "User không tồn tại" });
+  }
 
-return res.json({error : false, user : isUser});
+  return res.json({ error: false, user: isUser });
 });
 
 //Add note
@@ -210,27 +210,24 @@ app.delete("/delete-note/:noteId", authenticateToken, async (req, res) => {
     const notes = await Note.findOne({ _id: noteId, userId: user._id });
 
     if (!notes) {
-      return res
-        .status(404)
-        .json({
-          error: true,
-          message: "Ghi chú không tồn tại hoặc bạn không có quyền xóa",
-        });
+      return res.status(404).json({
+        error: true,
+        message: "Ghi chú không tồn tại hoặc bạn không có quyền xóa",
+      });
     }
 
     await Note.deleteOne({ _id: noteId, userId: user._id });
 
     return res.json({ error: false, message: "Xóa ghi chú thành công" });
-
   } catch (error) {
     return res.status(500).json({ error: true, message: "Lỗi sever delete" });
   }
 });
 
 //Update is Pinned value
-app.put('/update-note-pinned/:noteId', authenticateToken, async (req, res)=>{
+app.put("/update-note-pinned/:noteId", authenticateToken, async (req, res) => {
   const noteId = req.params.noteId;
-  const {isPinned } = req.body; // received data from body of request
+  const { isPinned } = req.body; // received data from body of request
   const { user } = req.user;
 
   try {
@@ -247,11 +244,39 @@ app.put('/update-note-pinned/:noteId', authenticateToken, async (req, res)=>{
 
     await note.save();
 
-    return res.json({ error: false, note, message: "cập nhật ghi chú thành công" });
+    return res.json({
+      error: false,
+      note,
+      message: "cập nhật ghi chú thành công",
+    });
   } catch (error) {
     return res.status(500).json({ error: true, message: "lỗi server" });
   }
-})
+});
+
+// Search
+app.get("/search-notes", authenticateToken, async (req, res) => {
+  const { user } = req.user;
+  const { query } = req.query;
+
+  if (!query) {
+    return res.status(400).json({ message: "Vui lòng nhập từ khoá cần tìm" });
+  }
+
+  try {
+    const matchingNotes = await Note.find({
+      userId: user._id,
+      $or: [
+        { title: { $regex: new RegExp(query, "i") } },
+        { content: { $regex: new RegExp(query, "i") } },
+      ],
+    });
+
+    return res.json({ error: false, notes: matchingNotes, message: "Tìm kiếm thành công" });
+  } catch (error) {
+    return res.status(500).json({ error: true, message: "Lỗi sever" });
+  }
+});
 
 app.listen(8000, () => {
   console.log("Server is running on port 8000");
